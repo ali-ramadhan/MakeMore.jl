@@ -1,0 +1,8 @@
+name = "MakeMore"
+uuid = "c04790ae-d814-404c-82e7-e73218a9be7a"
+authors = ["ali-ramadhan <ali.hh.ramadhan@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
