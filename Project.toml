@@ -5,4 +5,6 @@ version = "0.1.0"
 
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+OneHotArrays = "0b1bfda6-eb8a-41d2-88d8-f5af5cad476f"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"

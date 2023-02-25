@@ -94,3 +94,68 @@ function negative_log_likelihood(name)
     end
     return -nll / nb
 end
+
+#####
+##### Training a "neural network" y = f(x) = Wx to learn the exact same bigram model.
+##### Here, x is a one-hot vector for the current character and y is a one-hot vector for the next character.
+##### W is a square matrix of weights (which when trained should correspond to the bigrams probability matrix).
+#####
+
+using OneHotArrays
+using Flux
+
+function onehot_name(name)
+    name = '.' * name * '.'
+    c1 = [c for c in name[1:end-1]]
+    c2 = [c for c in name[2:end]]
+    return onehotbatch(c1, all_chars), onehotbatch(c2, all_chars)
+end
+
+function training_dataset(names)
+    xs, ys = onehot_name(names[1])
+
+    for name in names[2:end]
+        x, y = onehot_name(name)
+        xs = hcat(xs, x)
+        ys = hcat(ys, y)
+    end
+
+    return xs, ys
+end
+
+# Negative log-likelihood loss function
+function loss(xs, ys, W)
+    logits = W * xs
+    probs = softmax(logits)
+    nll = -mean(log.(probs[ys]))
+    return nll
+end
+
+xs, ys = training_dataset(names)
+W = randn(nc, nc)
+
+η = 10 # Learning rate / step size
+
+for epoch in 1:100
+    loss_value, grads = Flux.withgradient(loss, xs, ys, W)
+
+    # Gradient descent
+    ∇W = grads[3]
+    W .-= η .* ∇W
+
+    println("epoch $epoch: loss = $loss_value")
+end
+
+function sample_name_nn(W)
+    name = "."
+    while true
+        prev_char = name[end]
+        x = onehot(prev_char, all_chars)
+        probs = softmax(W * x)
+        next_char = sample(all_chars, Weights(probs))
+        name *= next_char
+        if name[end] == '.'
+            return name[2:end-1]
+        end
+    end
+end
