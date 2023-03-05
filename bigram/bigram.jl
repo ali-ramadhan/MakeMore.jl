@@ -95,6 +95,11 @@ function negative_log_likelihood(name)
     return -nll / nb
 end
 
+println("Sampling names from the bigram mdoel:")
+for _ in 1:20
+    println(sample_name(bigrams))
+end
+
 #####
 ##### Training a "neural network" y = f(x) = Wx to learn the exact same bigram model.
 ##### Here, x is a one-hot vector for the current character and y is a one-hot vector for the next character.
@@ -158,4 +163,9 @@ function sample_name_nn(W)
             return name[2:end-1]
         end
     end
+end
+
+println("Sampling names from the neural network trained on bigrams:")
+for _ in 1:25
+    println(sample_name_nn(W))
 end
