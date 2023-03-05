@@ -1,4 +1,5 @@
 using Printf
+using Statistics
 using StatsBase
 using CairoMakie
 
@@ -34,7 +35,6 @@ end
 
 let
     fig = Figure(resolution = (1500, 1500))
-    ticklabels = string.(all_chars)
     ax = Axis(fig[1, 1])
 
     hmap = heatmap!(ax, bigrams, colormap=:matter)
@@ -66,7 +66,7 @@ end
 # Sampling from the bigram model
 
 γ = 1 # Model smoothing
-B = bigrams .+ 1
+B = bigrams .+ γ
 P = B ./ sum(B, dims=2)
 
 function sample_name(bigrams)
