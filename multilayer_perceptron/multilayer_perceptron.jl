@@ -52,18 +52,26 @@ xs, ys = generate_dataset(names)
 
 ys = Int.(ys)
 
-embedding_dims = 2
-C = randn(nc, embedding_dims)
+# Set up the model
 
-W₁ = randn(block_size*embedding_dims, 100)
-b₁ = reshape(randn(100), (1, 100))
+dim_embedding = 10
+n_hidden = 200
 
-W₂ = randn(100, nc)
-b₂ = reshape(randn(nc), (1, nc))
+C = randn(nc, dim_embedding)
+
+# Kaiming initialization for tanh activation with `block_size * dim_embedding` inputs
+ω = (5/3) / sqrt(block_size*dim_embedding)
+W₁ =    ω  .* randn(block_size*dim_embedding, n_hidden)
+b₁ = 0.01 .* reshape(randn(n_hidden), (1, n_hidden))
+
+W₂ = 0.01 .* randn(n_hidden, nc)
+b₂ = 0    .* reshape(randn(nc), (1, nc))
+
+# Define loss function
 
 function loss(xs, ys, C, W₁, b₁, W₂, b₂)
     ndata = size(xs, 1)
-    nembs = block_size * embedding_dims
+    nembs = block_size * dim_embedding
     embedding = reshape(permutedims(C[xs, :], (1, 3, 2)), (ndata, nembs))
 
     h = tanh.(embedding * W₁ .+ b₁)
@@ -72,12 +80,11 @@ function loss(xs, ys, C, W₁, b₁, W₂, b₂)
     return logitcrossentropy(transpose(logits), onehotbatch(ys, 1:nc))
 end
 
-@info "Training..."
+# Partition data into training, dev, and test sets
 
-# Proportions: 80% training set, 10% dev set, 10% test set
-p_train = 0.8
-p_dev = 0.1
-p_test = 0.1
+p_train = 0.8  # 80% training set
+p_dev = 0.1    # 10% dev set
+p_test = 0.1   # 10% test set
 
 minibatch_size = 256
 
@@ -97,13 +104,18 @@ ys_dev = ys[n_train:n_dev]
 xs_test = xs[n_dev:end, :]
 ys_test = ys[n_dev:end]
 
-ηs = [0.1, 0.01] # Learning rate / step size with a decay
+# Train!
 
-epochs = 10000 # Epochs per learning rate
+@info "Training..."
+
+iters = 20000
+
+# Learning rate / step size with a decay
+η(i) = i < 10000 ? 0.1 : 0.01
 
 loss_history = []
 
-for η in ηs, epoch in 1:epochs
+for i in 1:iters
 
     is_minibatch = rand(1:n_train, minibatch_size)
     xs_minibatch = xs_train[is_minibatch, :]
@@ -114,14 +126,19 @@ for η in ηs, epoch in 1:epochs
     # Gradient descent
     ∇C, ∇W₁, ∇b₁, ∇W₂, ∇b₂ = grads[3:7]
 
-    C .-= η .* ∇C
-    W₁ .-= η .* ∇W₁
-    W₂ .-= η .* ∇W₂
-    b₁ .-= η .* ∇b₁
-    b₂ .-= η .* ∇b₂
+    ηₑ = η(i)
+    C .-= ηₑ .* ∇C
+    W₁ .-= ηₑ .* ∇W₁
+    W₂ .-= ηₑ .* ∇W₂
+    b₁ .-= ηₑ .* ∇b₁
+    b₂ .-= ηₑ .* ∇b₂
 
     push!(loss_history, loss_value)
-    @printf("epoch %s: loss = %f, |∇C| = %.8e\n", epoch, loss_value, mean(abs, ∇C))
+
+    if (i == 1) || (i % 1000 == 0)
+        lossₑ = loss(xs_train, ys_train, C, W₁, b₁, W₂, b₂)
+        @printf("Iteration %5d (epoch %6.3f): loss = %f\n", i, i / (n_train / minibatch_size), lossₑ)
+    end
 end
 
 loss_history = float.(loss_history)
@@ -134,21 +151,24 @@ println("Training loss: $loss_train")
 println("     Dev loss: $loss_dev")
 println("    Test loss: $loss_test")
 
+# Plot loss history
+
 let
-    total_epochs = length(loss_history)
     fig = Figure(resolution = (900, 600), padding=100)
     ax = Axis(fig[1, 1],
         xlabel = "Epochs",
         ylabel = "Cross-entropy loss",
         xgridvisible = false,
-        ygridvisible = false,
-        xscale = log10
+        ygridvisible = false
     )
 
-    lines!(1:total_epochs, loss_history, linewidth=2)
-    xlims!(ax, (1, total_epochs))
+    epochs = (1:iters) ./ (n_train / minibatch_size)
+    lines!(epochs, loss_history, linewidth=2)
+    xlims!(ax, (1, maximum(epochs)))
     save("mlp_loss.png", fig, px_per_unit=2)
 end
+
+# Plot embedding space
 
 let
     fig = Figure(resolution = (750, 750))
@@ -168,12 +188,14 @@ let
     save("embedding_space.png", fig, px_per_unit=2)
 end
 
+# Sample names from trained MLP
+
 function sample_name_mlp(C, W₁, b₁, W₂, b₂)
     context = ones(Int, block_size)
     name = ""
 
     while true
-        embedding = reshape(permutedims(C[context, :], (2, 1)), (1, 6))
+        embedding = reshape(permutedims(C[context, :], (2, 1)), (1, block_size * dim_embedding))
         h = tanh.(embedding * W₁ .+ b₁)
         logits = h * W₂ .+ b₂
 

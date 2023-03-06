@@ -46,7 +46,7 @@ Following the multilayer perceptron (MLP) architecture described by Bengio et al
 
 a neural network can learn multi-dimensional embeddings for each letter and interchange "similar" letters to produce names. Here it seems to have learned that vowels are "similar" (except for `o` for some reason) and finds a couple of larger clusters. Sampling from this multi-layer perceptron produces more realistic sounding names.
 
-![MLP letter embeddings](multilayer_perceptron/embedding_space.png)
+![MLP letter embeddings](multilayer_perceptron/embedding_space_2d.png)
 
 ```text
 jaline
